@@ -19,7 +19,7 @@ sudo apt install -y cmake gfortran make git
 ```
 ## Step 1: Clone the GEBT Solver Repository
 ```bash
-git clone https://github.com/aau-cns/GEBC.git
+git clone [https://github.com/aau-cns/GEBC.git](https://github.com/wenbinyugroup/gebt)
 cd GEBC
 ```
 ## Step 2: Build the Solver
