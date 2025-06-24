@@ -144,12 +144,7 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
     fig.canvas.mpl_connect('key_press_event', on_key)
     plot_step_or_eigen(current_frame[0])
     plt.show()
-
-if __name__ == "__main__":
-    
-    input_files = [f"trial_output_iteration/trial_input_iteration/trial_iter{i}.dat" for i in range(1,11)]  
-    output_files = [f"trial_output_iteration/trial_gebt_outputs/trial_iter{i}.dat.out" for i in range(1,11)]
-
+def process_files_and_plot(input_files,output_files):
     for i in range(len(input_files)):
         print(f"Processing: {input_files[i]}")
         try:
@@ -177,3 +172,14 @@ if __name__ == "__main__":
                 output_files[i], nstep, n_kp, n_member, ndivs_per_member, is_dynamic
             )
             interactive_beam_animation(steps,basename, scale=1, is_eigen=False)
+
+if __name__ == "__main__":
+    
+    input_files = [f"trial_output_iteration/trial_input_iteration/trial_iter{i}.dat" for i in range(1,101)]  
+    output_files = [f"trial_output_iteration/trial_gebt_outputs/trial_iter{i}.dat.out" for i in range(1,101)]
+    # input_files = ["trial.dat"]
+    # output_files = ["trial.dat.out"]
+    process_files_and_plot(input_files,output_files)
+
+
+    
