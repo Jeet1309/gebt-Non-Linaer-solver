@@ -64,4 +64,6 @@ Output files (e.g., .out, .ech) will be generated in the same directory.
 |----------------------------------------|-----------------------------------------------------------------------------------|
 | `cmake: command not found`              | Install CMake: `sudo apt install cmake`                                           |
 | `gfortran: command not found`           | Install GNU Fortran: `sudo apt install gfortran`                                  |
-| Permission denied running `gebt`        | Make the so
+| Permission denied running `gebt`        | Make the sudo                         |
+
+- Once you have successfully installed and ran the GEBT solver you can go and check tools directory provided to run the non_linear solver on GEBT 
