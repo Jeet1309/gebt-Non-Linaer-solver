@@ -66,4 +66,4 @@ Output files (e.g., .out, .ech) will be generated in the same directory.
 | `gfortran: command not found`           | Install GNU Fortran: `sudo apt install gfortran`                                  |
 | Permission denied running `gebt`        | Make the sudo                         |
 
-- Once you have successfully installed and ran the GEBT solver you can go and check tools directory provided to run the non_linear solver on GEBT 
+- Once you have successfully installed and ran the GEBT solver you can go and check tools[https://github.com/Jeet1309/gebt-Non-Linaer-solver/tree/main/tools] directory provided to run the non_linear solver on GEBT 
