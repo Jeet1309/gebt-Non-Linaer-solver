@@ -1,10 +1,10 @@
-# 🔧 GEBT Python Processing & Visualization Tools
+# 🔧 GEBT non-Linear Processing & Visualization Tools
 
 This repository provides Python tools to parse, modify, and visualize NASA GEBT (Geometrically Exact Beam Theory) solver data. It enables:
 
-- **Automated Iterative Analysis** (modifying stiffness matrices and forces based on displacement)
-- **Deformation Visualization** (including force & moment arrows)
-- **Eigenmode Plotting**
+- **Automated Iterative Analysis** (modifying stiffness matrices based on displacement adn forces)
+- **Deformation Visualization** 
+- **Eigenmode Visualization and non-Linear solver**  (solver is yet to be implemented)
 
 ---
 
@@ -27,7 +27,18 @@ This repository provides Python tools to parse, modify, and visualize NASA GEBT 
 pip install numpy matplotlib
 ```
 ## 🚀 Usage Guide
+### 0. Clone this repo 
+```bash
+git clone https://github.com/Jeet1309/gebt-Non-Linaer-solver
+cd gebt-Non-Linaer-solver
+cd tools
+```
 ### 1. Parsing and Viewing GEBT Output
+make sure you save this code in tolls directory itself or change the import file to 
+```python 
+import path.to.extract_data(or anyother file you need)
+```
+
 ```python
 import extract_data
 
@@ -70,22 +81,28 @@ output_iteration/
 ├── output_iteration/
 └── stiffness_iteration_<n>.npy
 ```
-### 3. Visualizing Deformation & Forces
-To animate deformation and forces/moments:
+### 3. Visualizing Deformation 
+Edit plot.py and set:
+```python 
+input_files = [f"trial_output_iteration/trial_input_iteration/trial_iter{i}.dat" for i in range(1,101)]   ## list of files you want to plot give the lcation of input and output files (you can 
+output_files = [f"trial_output_iteration/trial_gebt_outputs/trial_iter{i}.dat.out" for i in range(1,101)]  ##provide a single file or multiple as shown it will still show all the steps and eigenvalues.
+process_files_and_plot(input_files,output_files)
+```
+To animate deformation :
 
 ```bash
-python plot_animation.py
+python plot.py 
 ```
 - Press 'n' to step through simulation steps or eigenmodes.
 
-- Forces are shown as green arrows; moments as purple circles.
+
 
 ## 🎯 Features
 - 📊 Fully parsed GEBT output (static/dynamic/eigen)
 
 - 🔁 Automatic force scaling and stiffness matrix update
 
-- 🎥 Interactive deformation & eigenmode animations with forces/moments
+- 🎥 Interactive deformation & eigenmode animations
 
 - 📝 Stiffness history saved for debugging and analysis
 
