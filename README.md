@@ -31,6 +31,16 @@ cmake ..
 make
 
 ```
+If you get errors in the build like these :
+```bash
+Error: Rank mismatch in argument ‘ix’ at (1) (rank-1 and scalar)
+/home/gurbani/gebt_solver/gebt/src/arpack.f:6126:35:
+
+ 6126 |              call ivout(logfil, 1, nconv, ndigit,
+      |                                   1
+Error: Rank mismatch in argument ‘ix’ at (1) (rank-1 and scalar)
+```
+Replace the arpack.f file in the src directory with the one that is uploaded here
 ## Step 3: Verify the Build
 
 After compilation, the solver executable gebt (or similarly named binary) will be present in the build directory.
