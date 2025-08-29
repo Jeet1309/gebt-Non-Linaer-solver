@@ -37,13 +37,13 @@ def process_input_file(input_path,is_space):
     if(is_space):
         i+=1 # next line 
     # Skip 2 blank lines
-    print(1,lines[i])
-    print(2,lines[i+1])
+    
     if lines: i+=1  #flag ==0
     i+=1
     members = []
-    print(3,lines[i])
-    print(4,lines[i+1])
+    print(lines[i+1])
+    print(lines[i])
+    print(lines[i+2])
     for _ in range(n_member):
         parts = lines[i].strip().split()
         member = {
@@ -101,6 +101,7 @@ def process_input_file(input_path,is_space):
     print(f"Reading at line {i}: '{repr(lines[i])}'")
     # Parse Section Matrices (for n_material)
     section_matrices = []
+
     for _ in range(n_mate):
         material_no = int(lines[i][0])
         i += 1
@@ -113,6 +114,10 @@ def process_input_file(input_path,is_space):
             'material_no': material_no,
             'matrix': matrix
         })
+        i+=1
+
+        
+
 
     return metadata, members, point_conditions, section_matrices
 
@@ -399,8 +404,8 @@ def print_all_gebt_output_eigen(step_data, eigen_data):
                     print(f"      Momenta       : {seg['momenta']}")
 
 if __name__ == "__main__":
-    input_files = ["gebr_auto_input.dat"]  # Example file
-    output_files = ["gebr_auto_input.dat.out"]
+    input_files = ["trial_output_iteration/trial_input_iteration/trial_iter1.dat"]  # Example file
+    output_files = ["trial_output_iteration/trial_gebt_outputs/trial_iter1.dat.out"]
 
     for i in range(len(input_files)):
         print(input_files[i])
@@ -426,31 +431,35 @@ if __name__ == "__main__":
         print("\n🧩 Section Matrices:")
         print(section_matrices)
 
-        # if(is_eigen):
-        #     nev= metadata["n_ev"]
-        #     # print(nev)
-        #     steps,eigens = parse_all_steps_from_firststyle_for_eigen(
-        #     output_files[i],
-        #     nstep,
-        #     n_kp,
-        #     n_member,
-        #     ndivs_per_member,
-        #     nev,
-        #     is_eigen
-        #     )
-        #     print_all_gebt_output_eigen(steps,eigens)
+
+        if(is_eigen):
+            nev= metadata["n_ev"]
+            # print(nev)
+            steps,eigens = parse_all_steps_from_firststyle_for_eigen(
+            output_files[i],
+            nstep,
+            n_kp,
+            n_member,
+            ndivs_per_member,
+            nev,
+            is_eigen
+            )
+            print_all_gebt_output_eigen(steps,eigens)
             
-        # else:
-        #     steps = parse_all_steps_from_firststyle(
-        #         output_files[i],
-        #         nstep,
-        #         n_kp,
-        #         n_member,
-        #         ndivs_per_member,
-        #         is_dynamic
-        #     )
-        #     print_all_gebt_output(steps)
+        else:
+            steps = parse_all_steps_from_firststyle(
+                output_files[i],
+                nstep,
+                n_kp,
+                n_member,
+                ndivs_per_member,
+                is_dynamic
+            )
+            print(steps[1]['members'][0][-1])
+            print("--------------------------------------------------------------------------")
+            # print(steps[1]['members'][:][-1])
+
+            # print_all_gebt_output(steps)
 
 
         
-        # print(steps.items())

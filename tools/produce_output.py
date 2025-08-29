@@ -42,5 +42,5 @@ def run_gebt_case(
 
 # Entry point
 if __name__ == "__main__":
-    run_gebt_case("/home/jeetgurbani/gebt/trial.dat")
+    run_gebt_case("/home/jeetgurbani/gebt/test1.dat")
     

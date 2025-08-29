@@ -28,7 +28,7 @@ def plot_force_and_moment(ax, x, y, force_vec, moment_vec, scale=0.1):
         ax.add_patch(circle)
         ax.text(x + 0.06, y + 0.06, f"{moment_mag:.1f}Nm", color='m', fontsize=8)
 
-def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=False):
+def interactive_beam_animation(steps,file, eigen_data=None, scale_x=100, scale_y=100, scale_z=100, is_eigen=False):
     """
     Interactive animation for both normal steps and eigenmodes.
     Press 'n' to go to the next frame (either step or eigenmode).
@@ -77,9 +77,9 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
                 x, y, z = seg["position"]
                 dx, dy, dz = seg["displacement"][:3]
                 undeformed_xz.append((x, z))
-                deformed_xz.append((x + dx * scale, z + dz * scale))
+                deformed_xz.append((x + dx * scale_x, z + dz * scale_z))
                 undeformed_xy.append((x, y))
-                deformed_xy.append((x + dx * scale, y + dy * scale))
+                deformed_xy.append((x + dx * scale_x, y + dy * scale_y))
 
         # Keypoints
         point_und_xz = []
@@ -91,9 +91,9 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
             x, y, z = pt["position"]
             dx, dy, dz = pt["displacement"][:3]
             point_und_xz.append((x, z))
-            point_def_xz.append((x + dx * scale, z + dz * scale))
+            point_def_xz.append((x + dx * scale_x, z + dz * scale_z))
             point_und_xy.append((x, y))
-            point_def_xy.append((x + dx * scale, y + dy * scale))
+            point_def_xy.append((x + dx * scale_x, y + dy * scale_y))
 
         # Unpack for plotting
         x_und_xz, z_und = zip(*undeformed_xz)
@@ -107,7 +107,7 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
 
         # Plot XZ view (Top view)
         ax[0].plot(x_und_xz, z_und, 'k--', linewidth=1, label="Undeformed")
-        ax[0].plot(x_def_xz, z_def, 'r-', linewidth=2, label=f"Deformed (x{scale:.0e})")
+        ax[0].plot(x_def_xz, z_def, 'r-', linewidth=2, label=f"Deformed (x{scale_x:.0e})")
         ax[0].plot(px_und_xz, pz_und, 'ko', label="Keypoints (Undeformed)")
         ax[0].plot(px_def_xz, pz_def, 'ro', label="Keypoints (Deformed)")
         ax[0].set_xlabel("X Position")
@@ -119,7 +119,7 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
 
         # Plot XY view (Side view)
         ax[1].plot(x_und_xy, y_und, 'k--', linewidth=1, label="Undeformed")
-        ax[1].plot(x_def_xy, y_def, 'b-', linewidth=2, label=f"Deformed (x{scale:.0e})")
+        ax[1].plot(x_def_xy, y_def, 'b-', linewidth=2, label=f"Deformed (x{scale_x:.0e})")
         ax[1].plot(px_und_xy, py_und, 'ko', label="Keypoints (Undeformed)")
         ax[1].plot(px_def_xy, py_def, 'bo', label="Keypoints (Deformed)")
         ax[1].set_xlabel("X Position")
@@ -144,6 +144,7 @@ def interactive_beam_animation(steps,file, eigen_data=None, scale=1.0, is_eigen=
     fig.canvas.mpl_connect('key_press_event', on_key)
     plot_step_or_eigen(current_frame[0])
     plt.show()
+
 def process_files_and_plot(input_files,output_files):
     for i in range(len(input_files)):
         print(f"Processing: {input_files[i]}")
@@ -165,20 +166,20 @@ def process_files_and_plot(input_files,output_files):
                 output_files[i], nstep, n_kp, n_member, ndivs_per_member, nev
             )
             
-            interactive_beam_animation(steps,basename, eigen_data, scale=1000, is_eigen=True)
+            interactive_beam_animation(steps,basename, eigen_data,scale_x=1000,scale_y=1000, scale_z=1000, is_eigen=True)
 
         else:
             steps = extract_data.parse_all_steps_from_firststyle(
                 output_files[i], nstep, n_kp, n_member, ndivs_per_member, is_dynamic
             )
-            interactive_beam_animation(steps,basename, scale=1, is_eigen=False)
+            interactive_beam_animation(steps,basename, scale_x=1,scale_y=1, scale_z=1, is_eigen=False)
 
 if __name__ == "__main__":
     
-    input_files = [f"trial_output_iteration/trial_input_iteration/trial_iter{i}.dat" for i in range(1,101)]  
-    output_files = [f"trial_output_iteration/trial_gebt_outputs/trial_iter{i}.dat.out" for i in range(1,101)]
-    # input_files = ["trial.dat"]
-    # output_files = ["trial.dat.out"]
+    # input_files = [f"trial_output_iteration/trial_input_iteration/trial_iter{i}.dat" for i in range(1,51)]  
+    # output_files = [f"trial_output_iteration/trial_gebt_outputs/trial_iter{i}.dat.out" for i in range(1,51)]
+    input_files = ["trial_output_iteration/trial_final.dat"]
+    output_files = ["trial_output_iteration/trial_final.dat.out"]
     process_files_and_plot(input_files,output_files)
 
 

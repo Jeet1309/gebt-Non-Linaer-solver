@@ -1,12 +1,15 @@
 import os
 import shutil
 import numpy as np
+from collections import defaultdict
 import extract_data 
 import modify_input 
+import copy
 import produce_output
 import extract_data
+from test import Crossection_9x9
 
-def compute_Sn(Sij, gamma11, kappa1, kappa2, kappa3):
+def compute_Sn( gamma11, kappa1, kappa2, kappa3):
     """
     Compute nonlinear section stiffness matrix Sn (6x6) from 9x9 Sij matrix.
     Inputs:
@@ -15,7 +18,9 @@ def compute_Sn(Sij, gamma11, kappa1, kappa2, kappa3):
     Returns:
     - Inverse of Sn (6x6) if invertible, else None
     """
-    Sn = np.zeros((6, 6))
+    b = 0.1
+    Sij = Crossection_9x9(kappa1,b)
+    Sn = np.zeros((4, 4))
 
     # Compute elements:
     Sn11 = Sij[0, 0] + Sij[6, 6] * kappa2**2
@@ -39,32 +44,54 @@ def compute_Sn(Sij, gamma11, kappa1, kappa2, kappa3):
 
     # Fill 6x6 Sn matrix (zero rows/cols for γ̄22, γ̄33):
     Sn[0, 0] = Sn11
-    Sn[0, 3] = Sn12
-    Sn[0, 4] = Sn13
-    Sn[0, 5] = Sn14
+    Sn[0, 1] = Sn12
+    Sn[0, 2] = Sn13
+    Sn[0, 3] = Sn14
 
-    Sn[3, 0] = Sn12
-    Sn[3, 3] = Sn22
-    Sn[3, 4] = Sn23
-    Sn[3, 5] = Sn24
+    Sn[1, 0] = Sn12
+    Sn[1, 1] = Sn22
+    Sn[1, 2] = Sn23
+    Sn[1, 3] = Sn24
 
-    Sn[4, 0] = Sn13
-    Sn[4, 3] = Sn23
-    Sn[4, 4] = Sn33
-    Sn[4, 5] = Sn34
+    Sn[2, 0] = Sn13
+    Sn[2, 1] = Sn23
+    Sn[2, 2] = Sn33
+    Sn[2, 3] = Sn34
 
-    Sn[5, 0] = Sn14
-    Sn[5, 3] = Sn24
-    Sn[5, 4] = Sn34
-    Sn[5, 5] = Sn44
+    Sn[3, 0] = Sn14
+    Sn[3, 1] = Sn24
+    Sn[3, 2] = Sn34
+    Sn[3, 3] = Sn44
 
     try:
         Sn_inv = np.linalg.inv(Sn)
     except np.linalg.LinAlgError:
         print("❌ Sn is singular, cannot invert.")
         return None
+    Sn_inv_6_6 = np.zeros((6, 6)) 
+    
+    Sn_inv_6_6[0, 0] = Sn_inv[0, 0]
+    Sn_inv_6_6[0, 3] = Sn_inv[0, 1]
+    Sn_inv_6_6[0, 4] = Sn_inv[0, 2]
+    Sn_inv_6_6[0, 5] = Sn_inv[0, 3]
+    
+    Sn_inv_6_6[3, 0] = Sn_inv[1, 0]
+    Sn_inv_6_6[3, 3] = Sn_inv[1, 1]
+    Sn_inv_6_6[3, 4] = Sn_inv[1, 2]
+    Sn_inv_6_6[3, 5] = Sn_inv[1, 3]
 
-    return Sn_inv
+    Sn_inv_6_6[4, 0] = Sn_inv[2, 0]
+    Sn_inv_6_6[4, 3] = Sn_inv[2, 1]
+    Sn_inv_6_6[4, 4] = Sn_inv[2, 2]
+    Sn_inv_6_6[4, 5] = Sn_inv[2, 3]
+
+    Sn_inv_6_6[5, 0] = Sn_inv[3, 0]
+    Sn_inv_6_6[5, 3] = Sn_inv[3, 1]
+    Sn_inv_6_6[5, 4] = Sn_inv[3, 2]
+    Sn_inv_6_6[5, 5] = Sn_inv[3, 3]
+
+
+    return Sn_inv_6_6
 
 def extract_loads(output_path, nstep, n_kp, n_member, ndivs_per_member, is_dynamic=False):
     """
@@ -76,59 +103,60 @@ def extract_loads(output_path, nstep, n_kp, n_member, ndivs_per_member, is_dynam
     )
     last_step = data[nstep]
     points = last_step['points']
+    members = last_step['members']
 
-    load = {}
+    load_pt = {}
     for idx, pt in enumerate(points, start=1):
-        load[idx] = pt['force_moment']
-    return load
+        load_pt[idx] = pt['force_moment']
+    load_mem = defaultdict(list)
+    for idx, mem in enumerate(members, start=1):
+        load_mem[idx].append(mem[0]['force_moment'])
+        load_mem[idx].append(mem[-1]['force_moment'])
+    
+    return load_pt,load_mem
 
-def give_k(load, K_current, members):
-    """
-    For each member:
-    1. Average loads of kp1 and kp2.
-    2. Get corresponding K matrix from K_current.
-    3. Compute gamma vector = K @ avg_load.
-    4. Use this to compute nonlinear Sn.
-    5. Compute inverse Sn⁻¹ and update K_current.
-    Returns:
-        K_current (updated with new Sn⁻¹)
-    """
-    S_matrix = np.ones((9, 9))  # Replace this with real Sij matrix.
-
+def give_k(load_mem, K_current, members):
+    K_next = copy.deepcopy(K_current)
+    kp_loads = defaultdict(list)
     for member in members:
         memb_no = member['memb_no']
         kp1 = member['kp1']
         kp2 = member['kp2']
-        mate1 = member['mate1']  # material no.
-
-        load_kp1 = np.array(load.get(kp1, [0, 0, 0, 0, 0, 0]))
-        load_kp2 = np.array(load.get(kp2, [0, 0, 0, 0, 0, 0]))
-        avg_load = 0.5 * (load_kp1 + load_kp2)
+        mate1 = member['mate1']
+        mate2 = member['mate2']  
+        
+        load_kp1 = np.array(load_mem[memb_no][0])
+        load_kp2 = np.array(load_mem[memb_no][1])
+        kp_loads[kp1].append(load_kp1)
+        kp_loads[kp2].append(load_kp2)
+    for kp,loads in kp_loads.items():
+        kp_loads[kp] = sum(loads)/len(loads)
+    # print(kp_loads)
+    for kp,avg_load in kp_loads.items():
+        material_id = kp
 
         # Find section matrix K for this material:
         section_matrix = None
-        for mat in K_current:
-            if int(mat['material_no']) == mate1:
+        for mat in K_next:
+            if int(mat['material_no']) == material_id:
                 section_matrix = np.array(mat['matrix'])
-                break
         if section_matrix is None:
             raise ValueError(f"Material {mate1} not found in K_current!")
-
         # Compute gamma vector:
         gamma_vector = section_matrix @ avg_load
 
         # Compute Sn:
-        Sn_inv = compute_Sn(S_matrix, gamma_vector[0], gamma_vector[3], gamma_vector[4], gamma_vector[5])
+        Sn_inv = compute_Sn( gamma_vector[0], gamma_vector[3], gamma_vector[4], gamma_vector[5])
         if Sn_inv is not None:
             # Update this material's section matrix:
-            for mat in K_current:
-                if int(mat['material_no']) == mate1:
+            for mat in K_next:
+                if int(mat['material_no']) == material_id:
                     mat['matrix'] = Sn_inv.tolist()
-                    print(f"✅ Updated K matrix for Material {mate1} using Sn⁻¹")
-        else:
-            print(f"⚠️ Skipped update for Material {mate1} due to singular Sn.")
-
-    return K_current
+            
+    #     else:
+    #         print(f"⚠️ Skipped update for Material {mate1} due to singular Sn.")
+    # print(f"✅ Updated K matrix for Materials")
+    return K_next
 
 
 def save_k_matrices(K_current, itr, output_dir):
@@ -142,47 +170,39 @@ def save_k_matrices(K_current, itr, output_dir):
         
         k_matrix_path = os.path.join(material_dir, f"K_iter{itr}.txt")
         np.savetxt(k_matrix_path, np.array(mat['matrix']), fmt='%.6e')
-        print(f"✅ Saved K matrix for Iteration {itr}, Material {material_no} at: {k_matrix_path}")
+    print(f"✅ Saved K matrix for Iteration {itr}")
 
-def extract_avg_displacement(output_path, nstep, n_kp, n_member, ndivs_per_member, is_dynamic=False):
+def extract_disp_load(output_path, nstep, n_kp, n_member, ndivs_per_member, is_dynamic=False):
     """
-    Extracts the average displacement magnitude over all points for the last time step.
-    
+    Extract displacement and force vectors for each point at the last timestep.
+
     Parameters:
     - output_path: path to the GEBT output file.
     - nstep: number of time steps (we use the last one).
     - n_kp: number of key points.
     - n_member: number of members.
-    - ndivs_per_member: divisions per member (list).
-    - is_dynamic: whether the analysis is dynamic (bool).
-    
+    - ndivs_per_member: list of divisions per member.
+    - is_dynamic: whether the analysis is dynamic.
+
     Returns:
-    - u_avg: average displacement magnitude (scalar).
+    - disp_vector: {point_no: [ux, uy, uz, θx, θy, θz]}
+    - load_vector: {point_no: [Fx, Fy, Fz, Mx, My, Mz]}
     """
-    # Parse all time steps
     step_data = extract_data.parse_all_steps_from_firststyle(
         output_path, nstep, n_kp, n_member, ndivs_per_member, is_dynamic
     )
 
-    # Select the last time step
     last_step = step_data[nstep]
     points = last_step['points']
 
-    total_disp = 0.0
-    count = 0
+    disp_vector = {}
+    load_vector = {}
+    for i,pt in enumerate(points):
+        disp_vector[i] = np.array(pt['displacement'])  # [ux, uy, uz, θx, θy, θz]
+        load_vector[i] = np.array(pt['force_moment'])  # [Fx, Fy, Fz, Mx, My, Mz]
 
-    for pt in points:
-        disp_vector = np.array(pt['displacement'][:3])  # [ux, uy, uz]
-        magnitude = np.linalg.norm(disp_vector)  # Compute displacement magnitude
-        total_disp += magnitude
-        count += 1
+    return disp_vector, load_vector
 
-    if count == 0:
-        print("⚠️ Warning: No displacements found. Returning 0.")
-        return 0.0
-
-    u_avg = total_disp / count
-    return u_avg
 
 def extract_and_compute_forces(point_conditions, num_iterations, target_dofs=range(7, 13)):
     total_force = {}
@@ -233,14 +253,16 @@ def iteration_loop(input_file, num_iterations):
 
     # Initial stiffness matrix
     K_current = section_matrices
-    print("🎯 Initial stiffness matrix K:\n", K_current)
+    save_k_matrices(K_current, 0, output_dir)
 
     # Total force & scaling per iteration
     total_force, force_per_iteration = extract_and_compute_forces(point_conditions, num_iterations)
 
     # Convergence variables
-    u_avg_prev = None
-
+    disp_prev = None
+    force_prev = None
+    threshold = 1e-5
+    residual_dir = os.path.join(output_dir, "residuals")
     for itr in range(1, num_iterations + 1):
         print(f"\n🔄 Starting Iteration {itr}/{num_iterations}")
 
@@ -255,34 +277,50 @@ def iteration_loop(input_file, num_iterations):
         except Exception as e:
             print(f"❌ Error running GEBT at iteration {itr}: {e}")
             break
-
         # Compute average displacement from output
-        u_avg = extract_avg_displacement(output_to_generate, nstep, n_kp, n_member, ndivs_per_member, is_dynamic)
-        print(f"📏 Average displacement u_avg = {u_avg:.6e}")
+        disp,force= extract_disp_load(output_to_generate, nstep, n_kp, n_member, ndivs_per_member, is_dynamic)
 
         # Extract updated loads
-        load = extract_loads(output_to_generate, nstep, n_kp, n_member, ndivs_per_member, is_dynamic)
-
+        load,load_mem = extract_loads(output_to_generate, nstep, n_kp, n_member, ndivs_per_member, is_dynamic) 
         # Update stiffness matrix K
-        K_current = give_k(load, K_current, members)
-        print("🔧 Updated stiffness matrix K:\n", K_current)
+        
+        K_next = give_k(load_mem, K_current, members)
+        
 
         # Save current K matrix
-        save_k_matrices(K_current, itr, output_dir)
+        save_k_matrices(K_next, itr, output_dir)
+        
+        if K_next and K_current:
+            convergence = True
+            for i in range(len(K_next)):
+                
+                K_next_np = np.array(K_next[i]['matrix'])
+                K_current_np = np.array(K_current[i]['matrix'])
+            
+             
 
-        # Check for convergence
-        if u_avg_prev is not None:
-            delta_u = abs(u_avg - u_avg_prev)
-            print(f"🔍 Change in u_avg = {delta_u:.6e}")
-            if delta_u < 1e-6:
-                print(f"✅ Converged at iteration {itr} with Δu_avg = {delta_u:.6e}")
-                break
-        u_avg_prev = u_avg
+                residual = np.abs(K_next_np - K_current_np)
+                # print(residual)
+                if np.any(residual > threshold):
+                    convergence = False
+                
+
+                    break
+            if convergence:
+                print("K values converged")
+                break 
+        # print('k_next: ',K_next)
+        # print('k_curr: ',K_current)
+        K_current = K_next
+
+            
+
 
     # Generate final input file with total original force and last K
     final_input = os.path.join(output_dir, f"{base_name}_final.dat")
     modify_input.modify_input_file_forces(input_file, final_input, num_iterations, force_per_iteration)
     modify_input.modify_section_matrix(final_input, final_input, K_current)
+    print("\n")
     print("🏁 Final input file generated:", final_input)
 
     try:
@@ -293,5 +331,5 @@ def iteration_loop(input_file, num_iterations):
 
 if __name__ == "__main__":
     input_file = "trial.dat"
-    num_iterations = 100
+    num_iterations = 10
     iteration_loop(input_file, num_iterations)
